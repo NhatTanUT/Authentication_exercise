@@ -4,8 +4,12 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const ejs = require("ejs");
 const mongoose = require("mongoose");
+const bcrypt = require("bcrypt");
 
-const md5 = require("md5");
+const saltRounds = 10;
+
+// Use hashing password
+// const md5 = require("md5");
 
 // Use mongoose encryption
 // const encrypt = require("mongoose-encryption"); 
@@ -55,24 +59,32 @@ app.route("/login")
     })
     .post(function (req, res) {
         const username = req.body.username;
-        const password = md5(req.body.password);
-        
+
+        //Hashing password md5
+        // const password = md5(req.body.password);
+
+        const password = req.body.password;
+
         // console.log(password);
         User.findOne({
             email: username
         }, function (err, foundUser) {
-            // console.log(foundUser.password);
             if (!err) {
                 if (foundUser) {
-                    // res.send(foundUser)
-                    // console.log(foundUser[0].password);
-                    if (foundUser.password === password) {
-                        // console.log(foundUser.password);
-                        res.render("secrets");
-                    }
-                    else {
-                        console.log("Error pass");
-                    }
+
+                    // if (foundUser.password === password) {
+                    //     res.render("secrets");
+                    // }
+                    // else {
+                    //     console.log("Error pass");
+                    // }
+
+                    //Bcrypt
+                    bcrypt.compare(password, foundUser.password, function (err, result) {
+                        if (result === true)
+                            res.render("secrets");
+                    });
+
                 }
             } else {
                 console.log("Error");
@@ -85,16 +97,31 @@ app.route("/register")
         res.render("register");
     })
     .post(function (req, res) {
-        let newUser = new User({
-            email: req.body.username,
-            password: md5(req.body.password)
-        });
-        newUser.save(function (err) {
-            if (!err) {
-                res.render("secrets");
-            } else {
-                res.send(err);
-            }
+        // let newUser = new User({
+        //     email: req.body.username,
+        //     password: md5(req.body.password)
+        // });
+        // newUser.save(function (err) {
+        //     if (!err) {
+        //         res.render("secrets");
+        //     } else {
+        //         res.send(err);
+        //     }
+        // });
+
+        //Bcrypt
+        bcrypt.hash(req.body.password, saltRounds, function (err, hash) {
+            let newUser = new User({
+                email: req.body.username,
+                password: hash
+            });
+            newUser.save(function (err) {
+                if (!err) {
+                    res.render("secrets");
+                } else {
+                    res.send(err);
+                }
+            });
         });
     });
 
